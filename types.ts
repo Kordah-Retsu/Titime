@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
@@ -42,11 +43,25 @@ export interface PaymentItem {
   description: string;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  phoneNumber?: string;
+  authMethod: 'email' | 'phone' | 'google';
+  avatar?: string;
+  joinedClubs: string[]; // List of club IDs
+  paymentMethods: PaymentMethod[];
+  subscriptions: Record<string, string[]>; // clubId -> array of paymentItem IDs
+  customAmounts: Record<string, Record<string, number>>; // clubId -> paymentId -> amount
+}
+
 export interface Member {
   id: string;
   name: string;
   email: string;
-  status: 'Active' | 'Pending' | 'Overdue';
+  phoneNumber?: string;
+  status: 'Active' | 'Pending' | 'Overdue' | 'Blocked';
   joinedDate: string;
 }
 
@@ -71,6 +86,7 @@ export interface Club {
   name: string;
   description: string;
   logoColor: string;
+  adminIds: string[]; // IDs of users who can manage this club
   paymentItems: PaymentItem[];
   stats: ClubStats;
 }

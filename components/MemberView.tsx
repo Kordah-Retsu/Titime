@@ -1,37 +1,32 @@
-import React, { useState } from 'react';
-import { CreditCard, Smartphone, CheckCircle, AlertCircle, Calendar, DollarSign, Wallet, ArrowLeftRight, X, Pencil, Trash2, Lock, Plus } from 'lucide-react';
-import { PaymentItem, PaymentMethod, PaymentMethodType, Transaction } from '../types';
+import React, { useState, useEffect } from 'react';
+import { CreditCard, Smartphone, CheckCircle, AlertCircle, Calendar, DollarSign, Wallet, ArrowLeftRight, X, Pencil, Trash2, Lock, Plus, LogOut } from 'lucide-react';
+import { PaymentItem, PaymentMethod, PaymentMethodType, Transaction, User } from '../types';
 
 interface MemberViewProps {
-  currentUser: { name: string; email: string };
+  user: User;
   clubName: string;
+  clubId: string;
   clubLogoColor: string;
   duePayments: PaymentItem[];
   transactions: Transaction[];
   onBack: () => void;
   onSwitchClub: () => void;
+  onUpdateUser: (updatedUser: User) => void;
+  onSignOut: () => void;
 }
 
 const MemberView: React.FC<MemberViewProps> = ({ 
-  currentUser, 
+  user,
   clubName, 
+  clubId,
   clubLogoColor,
   duePayments, 
   transactions, 
   onBack,
-  onSwitchClub
+  onSwitchClub,
+  onUpdateUser,
+  onSignOut
 }) => {
-  // Initial Mock Data
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { 
-      id: '1', 
-      type: PaymentMethodType.MOBILE_MONEY, 
-      provider: 'MTN Mobile Money', 
-      phoneNumber: '0551234567', 
-      network: 'MTN' 
-    }
-  ]);
-
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,27 +42,66 @@ const MemberView: React.FC<MemberViewProps> = ({
     cardHolder: ''
   });
 
-  // Subscriptions State
-  const [subscriptions, setSubscriptions] = useState<Set<string>>(new Set(duePayments.filter(p => p.isCompulsory).map(p => p.id)));
-  const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({});
+  // Load subscriptions and custom amounts for THIS club from user profile
+  const clubSubscriptions = new Set(user.subscriptions[clubId] || []);
+  const clubCustomAmounts = user.customAmounts[clubId] || {};
 
-  const toggleSubscription = (id: string, isCompulsory: boolean) => {
+  // Initialize compulsory subscriptions if not present
+  useEffect(() => {
+    const compulsoryIds = duePayments.filter(p => p.isCompulsory).map(p => p.id);
+    const missingCompulsory = compulsoryIds.filter(id => !clubSubscriptions.has(id));
+    
+    if (missingCompulsory.length > 0) {
+      const newSubs = [...(user.subscriptions[clubId] || []), ...missingCompulsory];
+      onUpdateUser({
+        ...user,
+        subscriptions: {
+          ...user.subscriptions,
+          [clubId]: newSubs
+        }
+      });
+    }
+  }, [clubId, duePayments]);
+
+  const toggleSubscription = (paymentId: string, isCompulsory: boolean) => {
     if (isCompulsory) return;
-    const newSubs = new Set(subscriptions);
-    if (newSubs.has(id)) newSubs.delete(id);
-    else newSubs.add(id);
-    setSubscriptions(newSubs);
+    
+    const currentSubs = user.subscriptions[clubId] || [];
+    let newSubs;
+    
+    if (currentSubs.includes(paymentId)) {
+      newSubs = currentSubs.filter(id => id !== paymentId);
+    } else {
+      newSubs = [...currentSubs, paymentId];
+    }
+
+    onUpdateUser({
+      ...user,
+      subscriptions: {
+        ...user.subscriptions,
+        [clubId]: newSubs
+      }
+    });
   };
 
-  const handleCustomAmountChange = (id: string, amount: number) => {
-    setCustomAmounts(prev => ({ ...prev, [id]: amount }));
+  const handleCustomAmountChange = (paymentId: string, amount: number) => {
+    onUpdateUser({
+      ...user,
+      customAmounts: {
+        ...user.customAmounts,
+        [clubId]: {
+          ...(user.customAmounts[clubId] || {}),
+          [paymentId]: amount
+        }
+      }
+    });
   };
 
   // Payment Method Handlers
   const openAddModal = () => {
     setEditingId(null);
     setMethodType(PaymentMethodType.MOBILE_MONEY);
-    setFormData({ network: 'MTN', phoneNumber: '', cardNumber: '', expiryDate: '', cvv: '', cardHolder: '' });
+    setFormData({ network: 'MTN', phoneNumber: user.phoneNumber || '', cardNumber: '', expiryDate: '', cvv: '', cardHolder: user.name });
     setIsModalOpen(true);
   };
 
@@ -88,7 +122,7 @@ const MemberView: React.FC<MemberViewProps> = ({
       setFormData({
         network: 'MTN',
         phoneNumber: '',
-        cardNumber: `•••• •••• •••• ${method.last4}`, // Display masked
+        cardNumber: `•••• •••• •••• ${method.last4}`, 
         expiryDate: method.expiryDate || '',
         cvv: '•••',
         cardHolder: method.cardHolder || ''
@@ -99,16 +133,20 @@ const MemberView: React.FC<MemberViewProps> = ({
 
   const handleDeleteMethod = (id: string) => {
     if (window.confirm('Remove this payment method?')) {
-      setPaymentMethods(prev => prev.filter(m => m.id !== id));
+      onUpdateUser({
+        ...user,
+        paymentMethods: user.paymentMethods.filter(m => m.id !== id)
+      });
     }
   };
 
   const handleSaveMethod = (e: React.FormEvent) => {
     e.preventDefault();
     
+    let updatedMethods = [...user.paymentMethods];
+
     if (editingId) {
-      // Update Existing
-      setPaymentMethods(prev => prev.map(m => {
+      updatedMethods = updatedMethods.map(m => {
         if (m.id === editingId) {
           if (methodType === PaymentMethodType.MOBILE_MONEY) {
             return {
@@ -130,15 +168,14 @@ const MemberView: React.FC<MemberViewProps> = ({
           }
         }
         return m;
-      }));
+      });
     } else {
-      // Add New
       const newMethod: PaymentMethod = {
         id: Math.random().toString(36).substr(2, 9),
         type: methodType,
         provider: methodType === PaymentMethodType.MOBILE_MONEY 
           ? `${formData.network} Mobile Money` 
-          : 'Visa', // Simplification
+          : 'Visa',
         ...(methodType === PaymentMethodType.MOBILE_MONEY ? {
           network: formData.network,
           phoneNumber: formData.phoneNumber
@@ -148,16 +185,21 @@ const MemberView: React.FC<MemberViewProps> = ({
           cardHolder: formData.cardHolder
         })
       };
-      setPaymentMethods(prev => [...prev, newMethod]);
+      updatedMethods.push(newMethod);
     }
+
+    onUpdateUser({
+      ...user,
+      paymentMethods: updatedMethods
+    });
     setIsModalOpen(false);
   };
 
   const totalMonthly = duePayments
-    .filter(p => subscriptions.has(p.id))
+    .filter(p => clubSubscriptions.has(p.id))
     .reduce((acc, curr) => {
         if (curr.allowCustomAmount) {
-            return acc + (customAmounts[curr.id] || curr.amount);
+            return acc + (clubCustomAmounts[curr.id] || curr.amount);
         }
         return acc + curr.amount;
     }, 0);
@@ -191,12 +233,19 @@ const MemberView: React.FC<MemberViewProps> = ({
                 Switch Club
               </button>
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-medium text-slate-900">{currentUser.name}</div>
+                <div className="text-sm font-medium text-slate-900">{user.name}</div>
                 <div className="text-xs text-slate-500">Member</div>
               </div>
-              <div className="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium border border-slate-300">
-                {currentUser.name.charAt(0)}
+              <div className="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium border border-slate-300 overflow-hidden">
+                {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : user.name.charAt(0)}
               </div>
+              <button 
+                onClick={onSignOut}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                title="Sign Out"
+              >
+                  <LogOut className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -243,12 +292,12 @@ const MemberView: React.FC<MemberViewProps> = ({
           </div>
           
           <div className="space-y-3">
-            {paymentMethods.length === 0 ? (
+            {user.paymentMethods.length === 0 ? (
                 <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-xl">
-                    <p className="text-slate-500 text-sm">No payment methods added.</p>
+                    <p className="text-slate-500 text-sm">No payment methods saved.</p>
                 </div>
             ) : (
-                paymentMethods.map(method => (
+                user.paymentMethods.map(method => (
                 <div key={method.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                         <div className={`p-3 rounded-lg ${method.type === PaymentMethodType.CARD ? 'bg-indigo-50 text-indigo-600' : 'bg-yellow-50 text-yellow-600'}`}>
@@ -264,9 +313,6 @@ const MemberView: React.FC<MemberViewProps> = ({
                                     : `•••• •••• •••• ${method.last4}`
                                 }
                             </div>
-                            {method.type === PaymentMethodType.CARD && method.expiryDate && (
-                                <div className="text-xs text-slate-400 mt-0.5">Expires {method.expiryDate}</div>
-                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -318,13 +364,13 @@ const MemberView: React.FC<MemberViewProps> = ({
                         <p className="text-sm text-slate-500 mt-1">{payment.description}</p>
                         
                         <div className="flex flex-wrap items-center gap-3 mt-3">
-                          {payment.allowCustomAmount && subscriptions.has(payment.id) ? (
+                          {payment.allowCustomAmount && clubSubscriptions.has(payment.id) ? (
                               <div className="flex items-center gap-2">
                                   <span className="text-sm text-slate-500">Amount: GHS</span>
                                   <input 
                                     type="number" 
                                     className="w-24 p-1 border border-slate-300 rounded text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none bg-white placeholder:text-slate-400"
-                                    value={customAmounts[payment.id] || payment.amount}
+                                    value={clubCustomAmounts[payment.id] || payment.amount}
                                     onChange={(e) => handleCustomAmountChange(payment.id, Number(e.target.value))}
                                     min={payment.amount}
                                   />
@@ -352,7 +398,7 @@ const MemberView: React.FC<MemberViewProps> = ({
                     <input 
                       type="checkbox" 
                       className="sr-only peer" 
-                      checked={subscriptions.has(payment.id)}
+                      checked={clubSubscriptions.has(payment.id)}
                       disabled={payment.isCompulsory}
                       onChange={() => toggleSubscription(payment.id, payment.isCompulsory)}
                     />
@@ -472,7 +518,7 @@ const MemberView: React.FC<MemberViewProps> = ({
                                     <div className="relative">
                                         <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                         <input 
-                                            required={!editingId} // Not required if editing (masked)
+                                            required={!editingId}
                                             type="text" 
                                             value={formData.cardNumber}
                                             onChange={e => setFormData({...formData, cardNumber: e.target.value})}

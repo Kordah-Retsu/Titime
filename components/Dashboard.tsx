@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { 
   Users, DollarSign, Wallet, MoreVertical, Plus, 
-  Search, Bell, Bot, ArrowUpRight, Pencil, Trash2, X, ArrowLeftRight, Settings2
+  Search, Bell, Bot, ArrowUpRight, Pencil, Trash2, X, ArrowLeftRight, Settings2, ShieldAlert, Mail, Lock, UserX, UserCheck
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ClubStats, Member, PaymentItem, PaymentFrequency } from '../types';
@@ -19,6 +20,11 @@ interface DashboardProps {
   onAddPayment: (p: Omit<PaymentItem, 'id'>) => void;
   onUpdatePayment: (p: PaymentItem) => void;
   onDeletePayment: (id: string) => void;
+  // New props for member management and club settings
+  onDeleteClub: () => void;
+  onAddMember: (m: Omit<Member, 'id' | 'joinedDate'>) => void;
+  onUpdateMember: (m: Member) => void;
+  onDeleteMember: (id: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -31,27 +37,50 @@ const Dashboard: React.FC<DashboardProps> = ({
   onSwitchClub,
   onAddPayment,
   onUpdatePayment,
-  onDeletePayment 
+  onDeletePayment,
+  onDeleteClub,
+  onAddMember,
+  onUpdateMember,
+  onDeleteMember
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'finances'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'finances' | 'settings'>('overview');
   const [showAi, setShowAi] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   
-  // Modal State
-  const [modalState, setModalState] = useState<{
+  // Payment Modal State
+  const [paymentModal, setPaymentModal] = useState<{
     isOpen: boolean;
     mode: 'add' | 'edit';
     editingId?: string;
   }>({ isOpen: false, mode: 'add' });
 
-  // Form State
-  const [formData, setFormData] = useState({
+  // Member Modal State
+  const [memberModal, setMemberModal] = useState<{
+    isOpen: boolean;
+    mode: 'add' | 'edit';
+    editingId?: string;
+  }>({ isOpen: false, mode: 'add' });
+  
+  // Notification Modal State
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState('');
+
+  // Payment Form Data
+  const [paymentFormData, setPaymentFormData] = useState({
     title: '',
     amount: 0,
     frequency: PaymentFrequency.MONTHLY,
     isCompulsory: false,
     allowCustomAmount: false,
     description: ''
+  });
+
+  // Member Form Data
+  const [memberFormData, setMemberFormData] = useState({
+    name: '',
+    email: '',
+    phoneNumber: '',
+    status: 'Active' as 'Active' | 'Pending' | 'Overdue' | 'Blocked'
   });
 
   const chartData = [
@@ -74,8 +103,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
   }, [activeTab, stats, aiAnalysis]);
 
-  const openAddModal = () => {
-    setFormData({
+  // Payment Handlers
+  const openAddPaymentModal = () => {
+    setPaymentFormData({
         title: '',
         amount: 0,
         frequency: PaymentFrequency.MONTHLY,
@@ -83,11 +113,11 @@ const Dashboard: React.FC<DashboardProps> = ({
         allowCustomAmount: false,
         description: ''
     });
-    setModalState({ isOpen: true, mode: 'add' });
+    setPaymentModal({ isOpen: true, mode: 'add' });
   };
 
-  const openEditModal = (item: PaymentItem) => {
-    setFormData({
+  const openEditPaymentModal = (item: PaymentItem) => {
+    setPaymentFormData({
         title: item.title,
         amount: item.amount,
         frequency: item.frequency,
@@ -95,28 +125,68 @@ const Dashboard: React.FC<DashboardProps> = ({
         allowCustomAmount: item.allowCustomAmount || false,
         description: item.description
     });
-    setModalState({ isOpen: true, mode: 'edit', editingId: item.id });
+    setPaymentModal({ isOpen: true, mode: 'edit', editingId: item.id });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePaymentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (modalState.mode === 'add') {
-        onAddPayment(formData);
-    } else if (modalState.mode === 'edit' && modalState.editingId) {
-        onUpdatePayment({
-            id: modalState.editingId,
-            ...formData
-        });
+    if (paymentModal.mode === 'add') {
+        onAddPayment(paymentFormData);
+    } else if (paymentModal.mode === 'edit' && paymentModal.editingId) {
+        onUpdatePayment({ id: paymentModal.editingId, ...paymentFormData });
     }
-
-    setModalState({ isOpen: false, mode: 'add' });
+    setPaymentModal({ isOpen: false, mode: 'add' });
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this payment?')) {
-        onDeletePayment(id);
+  // Member Handlers
+  const openAddMemberModal = () => {
+    setMemberFormData({ name: '', email: '', phoneNumber: '', status: 'Active' });
+    setMemberModal({ isOpen: true, mode: 'add' });
+  };
+
+  const openEditMemberModal = (member: Member) => {
+    setMemberFormData({ 
+        name: member.name, 
+        email: member.email, 
+        phoneNumber: member.phoneNumber || '',
+        status: member.status 
+    });
+    setMemberModal({ isOpen: true, mode: 'edit', editingId: member.id });
+  };
+
+  const handleMemberSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (memberModal.mode === 'add') {
+        onAddMember(memberFormData);
+    } else if (memberModal.mode === 'edit' && memberModal.editingId) {
+        const existing = members.find(m => m.id === memberModal.editingId);
+        if (existing) {
+            onUpdateMember({ ...existing, ...memberFormData });
+        }
     }
+    setMemberModal({ isOpen: false, mode: 'add' });
+  };
+
+  const handleBlockMember = (member: Member) => {
+    if (window.confirm(`Are you sure you want to block ${member.name}?`)) {
+        onUpdateMember({ ...member, status: 'Blocked' });
+    }
+  };
+
+  const handleUnblockMember = (member: Member) => {
+    onUpdateMember({ ...member, status: 'Active' });
+  };
+
+  const handleDeleteMember = (id: string) => {
+    if (window.confirm('Remove this member permanently?')) {
+        onDeleteMember(id);
+    }
+  };
+
+  const handleSendNotification = () => {
+    alert(`Notification sent to members: "${notifyMessage}"`);
+    setNotifyMessage('');
+    setNotifyModalOpen(false);
   };
 
   return (
@@ -150,6 +220,12 @@ const Dashboard: React.FC<DashboardProps> = ({
           >
             <DollarSign className="h-5 w-5" /> Finances
           </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'settings' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <Settings2 className="h-5 w-5" /> Settings
+          </button>
         </nav>
 
         <div className="p-4 border-t border-slate-200 space-y-3">
@@ -177,7 +253,7 @@ const Dashboard: React.FC<DashboardProps> = ({
            </div>
            
            <div className="flex items-center gap-4">
-              <button className="p-2 text-slate-400 hover:text-slate-600 relative">
+              <button onClick={() => setNotifyModalOpen(true)} className="p-2 text-slate-400 hover:text-slate-600 relative" title="Send Notification">
                  <Bell className="h-5 w-5" />
                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
@@ -262,57 +338,105 @@ const Dashboard: React.FC<DashboardProps> = ({
           )}
 
           {activeTab === 'members' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-slate-800">Member Directory</h3>
-                  <div className="relative">
-                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                     <input type="text" placeholder="Search members..." className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900 placeholder:text-slate-400" />
-                  </div>
-               </div>
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left text-sm text-slate-600">
-                   <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-                     <tr>
-                       <th className="px-6 py-4">Name</th>
-                       <th className="px-6 py-4">Status</th>
-                       <th className="px-6 py-4">Joined Date</th>
-                       <th className="px-6 py-4 text-right">Action</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {members.map((member) => (
-                       <tr key={member.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                         <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                               <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-                                 {member.name.charAt(0)}
-                               </div>
-                               <div>
-                                 <div className="font-medium text-slate-900">{member.name}</div>
-                                 <div className="text-xs text-slate-500">{member.email}</div>
-                               </div>
-                            </div>
-                         </td>
-                         <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              member.status === 'Active' ? 'bg-emerald-100 text-emerald-700' :
-                              member.status === 'Overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {member.status}
-                            </span>
-                         </td>
-                         <td className="px-6 py-4">{member.joinedDate}</td>
-                         <td className="px-6 py-4 text-right">
-                           <button className="text-slate-400 hover:text-slate-600">
-                             <MoreVertical className="h-4 w-4" />
-                           </button>
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
+            <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input type="text" placeholder="Search members..." className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900 placeholder:text-slate-400" />
+                    </div>
+                    <div className="flex gap-2">
+                         <button 
+                            onClick={() => setNotifyModalOpen(true)}
+                            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <Mail className="h-4 w-4" /> Message All
+                        </button>
+                        <button 
+                            onClick={openAddMemberModal}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <Plus className="h-4 w-4" /> Add Member
+                        </button>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm text-slate-600">
+                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                            <tr>
+                            <th className="px-6 py-4">Name</th>
+                            <th className="px-6 py-4">Status</th>
+                            <th className="px-6 py-4">Contact</th>
+                            <th className="px-6 py-4">Joined Date</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {members.map((member) => (
+                            <tr key={member.id} className={`border-b border-slate-50 hover:bg-slate-50/50 ${member.status === 'Blocked' ? 'bg-red-50/30' : ''}`}>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${member.status === 'Blocked' ? 'bg-red-200 text-red-600' : 'bg-slate-200 text-slate-600'}`}>
+                                            {member.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-slate-900">{member.name}</div>
+                                            <div className="text-xs text-slate-500">{member.email}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    member.status === 'Active' ? 'bg-emerald-100 text-emerald-700' :
+                                    member.status === 'Overdue' ? 'bg-amber-100 text-amber-700' :
+                                    member.status === 'Blocked' ? 'bg-red-100 text-red-700' :
+                                    'bg-slate-100 text-slate-700'
+                                    }`}>
+                                    {member.status}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-xs font-mono">{member.phoneNumber || 'N/A'}</td>
+                                <td className="px-6 py-4">{member.joinedDate}</td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button 
+                                            onClick={() => openEditMemberModal(member)}
+                                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded" title="Edit"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </button>
+                                        
+                                        {member.status === 'Blocked' ? (
+                                            <button 
+                                                onClick={() => handleUnblockMember(member)}
+                                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded" title="Unblock"
+                                            >
+                                                <UserCheck className="h-4 w-4" />
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={() => handleBlockMember(member)}
+                                                className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded" title="Block"
+                                            >
+                                                <UserX className="h-4 w-4" />
+                                            </button>
+                                        )}
+
+                                        <button 
+                                            onClick={() => handleDeleteMember(member.id)}
+                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Remove"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            ))}
+                        </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
           )}
 
@@ -321,7 +445,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div className="flex justify-between items-center">
                    <h3 className="text-lg font-bold text-slate-800">Active Payment Plans</h3>
                    <button 
-                     onClick={openAddModal}
+                     onClick={openAddPaymentModal}
                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                    >
                      <Plus className="h-4 w-4" /> Create New Due
@@ -333,14 +457,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                      <div key={item.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative group hover:border-indigo-100 transition-all">
                         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
-                                onClick={() => openEditModal(item)}
+                                onClick={() => openEditPaymentModal(item)}
                                 className="p-2 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors"
                                 title="Edit"
                             >
                                 <Pencil className="h-4 w-4" />
                             </button>
                             <button 
-                                onClick={() => handleDelete(item.id)}
+                                onClick={() => {
+                                    if(window.confirm('Delete this payment plan?')) onDeletePayment(item.id);
+                                }}
                                 className="p-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-lg transition-colors"
                                 title="Delete"
                             >
@@ -376,44 +502,81 @@ const Dashboard: React.FC<DashboardProps> = ({
                            </span>
                            <span className="text-sm text-slate-500">/{item.frequency}</span>
                         </div>
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center text-sm">
-                           <span className="text-slate-500">Subscribers</span>
-                           <span className="font-medium text-slate-900 flex items-center gap-1">
-                              24 <ArrowUpRight className="h-3 w-3 text-emerald-500" />
-                           </span>
-                        </div>
                      </div>
                    ))}
                 </div>
              </div>
           )}
+
+          {activeTab === 'settings' && (
+              <div className="max-w-2xl space-y-6">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                      <h3 className="text-lg font-bold text-slate-900 mb-4">Club Settings</h3>
+                      <div className="space-y-4">
+                          <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-start justify-between">
+                              <div>
+                                  <h4 className="font-medium text-slate-900">Club Profile</h4>
+                                  <p className="text-sm text-slate-500 mt-1">Edit club name, description, and branding.</p>
+                              </div>
+                              <button className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50">
+                                  Edit Profile
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-6">
+                      <div className="flex items-start gap-4">
+                          <div className="p-3 bg-red-50 rounded-lg text-red-600">
+                              <ShieldAlert className="h-6 w-6" />
+                          </div>
+                          <div className="flex-1">
+                              <h3 className="text-lg font-bold text-slate-900">Danger Zone</h3>
+                              <p className="text-sm text-slate-500 mt-1">
+                                  Deleting the club will permanently remove all member data, transaction history, and payment configurations. This action cannot be undone.
+                              </p>
+                              <button 
+                                onClick={() => {
+                                    if(window.confirm('CRITICAL WARNING: Are you sure you want to delete this club? This action is irreversible.')) {
+                                        onDeleteClub();
+                                    }
+                                }}
+                                className="mt-4 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                              >
+                                  Delete Club Permanently
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          )}
         </main>
       </div>
 
-      {/* Payment Modal (Add/Edit) */}
-      {modalState.isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      {/* Payment Modal */}
+      {paymentModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
            <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-900">
-                    {modalState.mode === 'add' ? 'Create New Payment' : 'Edit Payment'}
+                    {paymentModal.mode === 'add' ? 'Create New Payment' : 'Edit Payment'}
                 </h3>
                 <button 
-                    onClick={() => setModalState({ ...modalState, isOpen: false })}
+                    onClick={() => setPaymentModal({ ...paymentModal, isOpen: false })}
                     className="text-slate-400 hover:text-slate-600"
                 >
                     <X className="h-5 w-5" />
                 </button>
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handlePaymentSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
                   <input 
                     required
                     type="text" 
-                    value={formData.title}
-                    onChange={e => setFormData({...formData, title: e.target.value})}
+                    value={paymentFormData.title}
+                    onChange={e => setPaymentFormData({...paymentFormData, title: e.target.value})}
                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900 placeholder:text-slate-400"
                     placeholder="e.g. Monthly Maintenance"
                   />
@@ -421,14 +584,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                      {formData.allowCustomAmount ? 'Minimum Amount (Optional)' : 'Amount (GHS)'}
+                      {paymentFormData.allowCustomAmount ? 'Minimum Amount (Optional)' : 'Amount (GHS)'}
                   </label>
                   <input 
                     required
                     type="number" 
                     min="0"
-                    value={formData.amount}
-                    onChange={e => setFormData({...formData, amount: Number(e.target.value)})}
+                    value={paymentFormData.amount}
+                    onChange={e => setPaymentFormData({...paymentFormData, amount: Number(e.target.value)})}
                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
@@ -437,8 +600,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Frequency</label>
                     <select 
-                      value={formData.frequency}
-                      onChange={e => setFormData({...formData, frequency: e.target.value as any})}
+                      value={paymentFormData.frequency}
+                      onChange={e => setPaymentFormData({...paymentFormData, frequency: e.target.value as any})}
                       className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
                     >
                       <option value="One Time">One Time</option>
@@ -454,8 +617,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input 
                         type="checkbox" 
-                        checked={formData.allowCustomAmount}
-                        onChange={e => setFormData({...formData, allowCustomAmount: e.target.checked})}
+                        checked={paymentFormData.allowCustomAmount}
+                        onChange={e => setPaymentFormData({...paymentFormData, allowCustomAmount: e.target.checked})}
                         className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 bg-white"
                       />
                       <div>
@@ -467,8 +630,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input 
                         type="checkbox" 
-                        checked={formData.isCompulsory}
-                        onChange={e => setFormData({...formData, isCompulsory: e.target.checked})}
+                        checked={paymentFormData.isCompulsory}
+                        onChange={e => setPaymentFormData({...paymentFormData, isCompulsory: e.target.checked})}
                         className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 bg-white"
                       />
                       <div>
@@ -482,15 +645,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                   <textarea 
                     rows={3}
-                    value={formData.description}
-                    onChange={e => setFormData({...formData, description: e.target.value})}
+                    value={paymentFormData.description}
+                    onChange={e => setPaymentFormData({...paymentFormData, description: e.target.value})}
                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none bg-white text-slate-900 placeholder:text-slate-400"
                   ></textarea>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button 
                     type="button" 
-                    onClick={() => setModalState({ ...modalState, isOpen: false })}
+                    onClick={() => setPaymentModal({ ...paymentModal, isOpen: false })}
                     className="flex-1 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50"
                   >
                     Cancel
@@ -499,12 +662,126 @@ const Dashboard: React.FC<DashboardProps> = ({
                     type="submit"
                     className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700"
                   >
-                    {modalState.mode === 'add' ? 'Create' : 'Save Changes'}
+                    {paymentModal.mode === 'add' ? 'Create' : 'Save Changes'}
                   </button>
                 </div>
               </form>
            </div>
         </div>
+      )}
+
+      {/* Member Modal */}
+      {memberModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-slate-900">
+                    {memberModal.mode === 'add' ? 'Add Member' : 'Edit Member'}
+                </h3>
+                <button 
+                    onClick={() => setMemberModal({ ...memberModal, isOpen: false })}
+                    className="text-slate-400 hover:text-slate-600"
+                >
+                    <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleMemberSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={memberFormData.name}
+                    onChange={e => setMemberFormData({...memberFormData, name: e.target.value})}
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                  <input 
+                    required
+                    type="email" 
+                    value={memberFormData.email}
+                    onChange={e => setMemberFormData({...memberFormData, email: e.target.value})}
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                  <input 
+                    type="tel" 
+                    value={memberFormData.phoneNumber}
+                    onChange={e => setMemberFormData({...memberFormData, phoneNumber: e.target.value})}
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                    <select 
+                      value={memberFormData.status}
+                      onChange={e => setMemberFormData({...memberFormData, status: e.target.value as any})}
+                      className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Overdue">Overdue</option>
+                      <option value="Blocked">Blocked</option>
+                    </select>
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setMemberModal({ ...memberModal, isOpen: false })}
+                    className="flex-1 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700"
+                  >
+                    {memberModal.mode === 'add' ? 'Add Member' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+           </div>
+        </div>
+      )}
+      
+      {/* Notification Modal */}
+      {notifyModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+             <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-slate-900">Send Notification</h3>
+                    <button 
+                        onClick={() => setNotifyModalOpen(false)}
+                        className="text-slate-400 hover:text-slate-600"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-500">This message will be sent to all {members.length} members via email and in-app notification.</p>
+                    <textarea 
+                        value={notifyMessage}
+                        onChange={(e) => setNotifyMessage(e.target.value)}
+                        placeholder="Type your message here..."
+                        rows={4}
+                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none bg-white text-slate-900 placeholder:text-slate-400"
+                    />
+                    <button 
+                        onClick={handleSendNotification}
+                        disabled={!notifyMessage}
+                        className="w-full py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                        Send Message
+                    </button>
+                </div>
+             </div>
+          </div>
       )}
 
       {/* AI Assistant Chat Bubble */}

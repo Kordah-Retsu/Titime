@@ -111,4 +111,21 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
         )}
       </div>
 
-      
+      {/* Footer */}
+      {!result && (
+        <div className="p-4 bg-white border-t border-slate-100">
+          <button
+            onClick={handleGenerate}
+            disabled={!promptDetails || isLoading}
+            className="w-full flex justify-center items-center gap-2 bg-indigo-600 text-white py-2.5 rounded-lg font-medium text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isLoading ? 'Drafting...' : 'Generate Draft'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AIAssistant;
