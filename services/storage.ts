@@ -120,9 +120,19 @@ export const storage = {
   },
 
   // Helper to create a user if not exists
-  findOrCreateUser: (identifier: string, type: 'email' | 'phone', name?: string): User => {
+  findOrCreateUser: (identifier: string, type: 'email' | 'phone', name?: string, role?: 'admin' | 'member'): User => {
     const users = storage.getUsers();
     let user = users.find(u => type === 'email' ? u.email === identifier : u.phoneNumber === identifier);
+    
+    // If user exists but is trying to log in as admin, upgrade them (for demo purposes)
+    if (user && role === 'admin' && user.role !== 'admin') {
+      user.role = 'admin';
+      const index = users.findIndex(u => u.id === user?.id);
+      if (index !== -1) {
+          users[index] = user;
+          localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+      }
+    }
     
     if (!user) {
       user = {
@@ -130,6 +140,7 @@ export const storage = {
         name: name || (type === 'email' ? identifier.split('@')[0] : `User ${identifier.slice(-4)}`),
         [type === 'email' ? 'email' : 'phoneNumber']: identifier,
         authMethod: type,
+        role: role || 'member',
         joinedClubs: [],
         paymentMethods: [],
         subscriptions: {},
@@ -140,11 +151,30 @@ export const storage = {
       if (identifier === 'admin@titime.com' || identifier === '0550000000') {
          user.id = 'admin-user'; // Hardcoded ID to match seeded clubs
          user.name = 'Demo Admin';
+         user.role = 'admin';
       }
 
       users.push(user);
       localStorage.setItem(KEYS.USERS, JSON.stringify(users));
     }
+
+    // CRITICAL FIX: If the user is an admin, ensure they have access to the default clubs
+    if (user.role === 'admin') {
+        const clubs = storage.getClubs();
+        let clubsUpdated = false;
+        
+        clubs.forEach(club => {
+            if (!club.adminIds.includes(user!.id)) {
+                club.adminIds.push(user!.id);
+                clubsUpdated = true;
+            }
+        });
+
+        if (clubsUpdated) {
+            storage.saveClubs(clubs);
+        }
+    }
+
     return user;
   }
 };

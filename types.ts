@@ -49,6 +49,7 @@ export interface User {
   email?: string;
   phoneNumber?: string;
   authMethod: 'email' | 'phone' | 'google';
+  role?: 'admin' | 'member'; // Added role preference
   avatar?: string;
   joinedClubs: string[]; // List of club IDs
   paymentMethods: PaymentMethod[];

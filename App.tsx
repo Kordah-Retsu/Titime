@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ClubStats, Member, PaymentItem, Transaction, Club, User } from './types';
 import Dashboard from './components/Dashboard';
@@ -45,6 +46,13 @@ const App: React.FC = () => {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     storage.setCurrentUser(user.id);
+    
+    // CRITICAL FIX: Refresh clubs from storage. 
+    // The login process (in storage.ts) might have updated the club.adminIds to include this new admin user.
+    // We need to fetch those changes so the UI reflects the permissions immediately.
+    const updatedClubs = storage.getClubs();
+    setClubs(updatedClubs);
+
     setIsAuthModalOpen(false);
     setCurrentView('club-selection');
   };
@@ -189,7 +197,8 @@ const App: React.FC = () => {
     setIsAuthenticating(true);
     setTimeout(() => {
       setIsAuthenticating(false);
-      const user = storage.findOrCreateUser(authInput, 'phone');
+      // Create user with the INTENDED ROLE
+      const user = storage.findOrCreateUser(authInput, 'phone', undefined, intendedRole);
       handleLogin(user);
     }, 1500);
   };
@@ -198,18 +207,10 @@ const App: React.FC = () => {
     setIsAuthenticating(true);
     setTimeout(() => {
       setIsAuthenticating(false);
-      const user = storage.findOrCreateUser('user@gmail.com', 'email', 'Google User');
+      // Create user with the INTENDED ROLE
+      const user = storage.findOrCreateUser('user@gmail.com', 'email', 'Google User', intendedRole);
       handleLogin(user);
     }, 1500);
-  };
-  
-  const handleDemoAdminLogin = () => {
-     setIsAuthenticating(true);
-     setTimeout(() => {
-       setIsAuthenticating(false);
-       const user = storage.findOrCreateUser('admin@titime.com', 'email', 'Demo Admin');
-       handleLogin(user);
-     }, 1000);
   };
 
   const activeClub = clubs.find(c => c.id === selectedClubId);
@@ -270,22 +271,22 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-200">
       <nav className="flex items-center justify-between p-6 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-2">
-           <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-indigo-200 shadow-lg">T</div>
-           <span className="text-2xl font-bold text-slate-900 tracking-tight">TitiMe</span>
+           <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-indigo-200 dark:shadow-none shadow-lg">T</div>
+           <span className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">TitiMe</span>
         </div>
-        <div className="hidden md:flex gap-6 text-sm font-medium text-slate-600">
-          <a href="#" className="hover:text-indigo-600">Features</a>
-          <a href="#" className="hover:text-indigo-600">Pricing</a>
-          <a href="#" className="hover:text-indigo-600">About</a>
+        <div className="hidden md:flex gap-6 text-sm font-medium text-slate-600 dark:text-slate-400">
+          <a href="#" className="hover:text-indigo-600 dark:hover:text-indigo-400">Features</a>
+          <a href="#" className="hover:text-indigo-600 dark:hover:text-indigo-400">Pricing</a>
+          <a href="#" className="hover:text-indigo-600 dark:hover:text-indigo-400">About</a>
         </div>
         <button 
           onClick={() => {
              setCurrentView('role-selection');
           }}
-          className="px-5 py-2 bg-slate-900 text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-colors"
+          className="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
         >
           Sign In
         </button>
@@ -295,17 +296,17 @@ const App: React.FC = () => {
         <main className="flex-1 flex items-center justify-center p-6">
             <div className="max-w-4xl w-full text-center space-y-12">
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-10 duration-700">
-                <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
                 Club payments <br/>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-emerald-500">made automatic.</span>
                 </h1>
-                <p className="text-xl text-slate-500 max-w-2xl mx-auto">
+                <p className="text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
                 The easiest way for societies and groups to collect dues, manage members, and track finances in Ghana. No more spreadsheets.
                 </p>
                 <div className="pt-4">
                     <button 
                     onClick={() => setCurrentView('role-selection')}
-                    className="px-8 py-3 bg-indigo-600 text-white rounded-full text-base font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-indigo-200"
+                    className="px-8 py-3 bg-indigo-600 text-white rounded-full text-base font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-indigo-200 dark:shadow-none"
                     >
                     Get Started
                     </button>
@@ -313,26 +314,26 @@ const App: React.FC = () => {
             </div>
 
             <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto pt-8 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-200">
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 mb-4 mx-auto">
+                <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-4 mx-auto">
                         <Phone className="h-5 w-5" />
                     </div>
-                    <h3 className="font-bold text-slate-900">Mobile First</h3>
-                    <p className="text-sm text-slate-500 mt-2">Login easily with your phone number and pay with MoMo.</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Mobile First</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Login easily with your phone number and pay with MoMo.</p>
                 </div>
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 mb-4 mx-auto">
+                <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4 mx-auto">
                         <ShieldCheck className="h-5 w-5" />
                     </div>
-                    <h3 className="font-bold text-slate-900">Secure & Safe</h3>
-                    <p className="text-sm text-slate-500 mt-2">Enterprise-grade security for your community's funds.</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Secure & Safe</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Enterprise-grade security for your community's funds.</p>
                 </div>
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600 mb-4 mx-auto">
+                <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center text-orange-600 dark:text-orange-400 mb-4 mx-auto">
                         <Users className="h-5 w-5" />
                     </div>
-                    <h3 className="font-bold text-slate-900">Community Focused</h3>
-                    <p className="text-sm text-slate-500 mt-2">Built specifically for Ghanaian clubs, societies and groups.</p>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Community Focused</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Built specifically for Ghanaian clubs, societies and groups.</p>
                 </div>
             </div>
             </div>
@@ -343,12 +344,12 @@ const App: React.FC = () => {
          <main className="flex-1 flex items-center justify-center p-6 animate-in fade-in slide-in-from-bottom-4">
              <div className="max-w-xl w-full text-center space-y-8">
                  <div className="flex justify-center mb-6">
-                    <button onClick={() => setCurrentView('landing')} className="flex items-center text-slate-500 hover:text-slate-800 transition-colors">
+                    <button onClick={() => setCurrentView('landing')} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
                         <ArrowLeft className="h-4 w-4 mr-2" /> Back to Home
                     </button>
                  </div>
-                 <h2 className="text-3xl font-bold text-slate-900">How would you like to continue?</h2>
-                 <p className="text-slate-500">Choose your role to sign in or sign up.</p>
+                 <h2 className="text-3xl font-bold text-slate-900 dark:text-white">How would you like to continue?</h2>
+                 <p className="text-slate-500 dark:text-slate-400">Choose your role to sign in or sign up.</p>
                  
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <button 
@@ -356,13 +357,13 @@ const App: React.FC = () => {
                             setIntendedRole('member');
                             setIsAuthModalOpen(true);
                         }}
-                        className="p-8 rounded-2xl border-2 border-slate-100 hover:border-indigo-600 hover:bg-indigo-50 transition-all group text-left"
+                        className="p-8 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-indigo-600 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all group text-left"
                      >
-                        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Users className="h-6 w-6" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">Member</h3>
-                        <p className="text-sm text-slate-500">I want to pay dues and manage my subscription to a club.</p>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Member</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">I want to pay dues and manage my subscription to a club.</p>
                      </button>
 
                      <button 
@@ -370,13 +371,13 @@ const App: React.FC = () => {
                             setIntendedRole('admin');
                             setIsAuthModalOpen(true);
                         }}
-                        className="p-8 rounded-2xl border-2 border-slate-100 hover:border-emerald-600 hover:bg-emerald-50 transition-all group text-left"
+                        className="p-8 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-emerald-600 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all group text-left"
                      >
-                        <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <ShieldCheck className="h-6 w-6" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">Admin / Executive</h3>
-                        <p className="text-sm text-slate-500">I want to create a club, manage members, and track finances.</p>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Admin / Executive</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">I want to create a club, manage members, and track finances.</p>
                      </button>
                  </div>
              </div>
@@ -386,33 +387,37 @@ const App: React.FC = () => {
       {/* Modern Auth Modal */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-           <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl animate-in fade-in zoom-in duration-200 relative overflow-hidden">
+           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm p-8 shadow-2xl animate-in fade-in zoom-in duration-200 relative overflow-hidden border border-slate-200 dark:border-slate-800">
               <button 
                  onClick={() => setIsAuthModalOpen(false)}
-                 className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+                 className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <X className="h-5 w-5" />
               </button>
               
               <div className="text-center mb-6">
-                 <h2 className="text-2xl font-bold text-slate-900">
-                     {intendedRole === 'admin' ? 'Admin Login' : 'Member Login'}
+                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                     {intendedRole === 'admin' ? 'Admin Access' : 'Member Login'}
                  </h2>
-                 <p className="text-slate-500 text-sm mt-1">Manage your club finances easily.</p>
+                 <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                     {intendedRole === 'admin' 
+                        ? 'Sign in to manage your club.' 
+                        : 'Sign in to access your dues.'}
+                 </p>
               </div>
 
               {authStep === 'method' && (
                   <div className="space-y-3">
                       <button 
                         onClick={() => { setAuthStep('phone-input'); setAuthInput(''); }}
-                        className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors"
+                        className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
                       >
                          <Phone className="h-5 w-5" />
                          Continue with Phone
                       </button>
                       <button 
                          onClick={handleGoogleLogin}
-                         className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors"
+                         className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                       >
                          {isAuthenticating ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                              <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -424,25 +429,13 @@ const App: React.FC = () => {
                          )}
                          Continue with Google
                       </button>
-                      
-                      <div className="relative py-4">
-                          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                          <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400">Or for demo</span></div>
-                      </div>
-
-                      <button 
-                        onClick={handleDemoAdminLogin}
-                        className="w-full py-2 text-sm text-indigo-600 font-medium hover:bg-indigo-50 rounded-lg transition-colors"
-                      >
-                         {isAuthenticating ? 'Logging in...' : 'Try as Executive Admin'}
-                      </button>
                   </div>
               )}
 
               {authStep === 'phone-input' && (
                   <form onSubmit={initiatePhoneLogin} className="space-y-4">
                       <div>
-                          <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Mobile Number</label>
+                          <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Mobile Number</label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">🇬🇭 +233</span>
                             <input 
@@ -450,7 +443,7 @@ const App: React.FC = () => {
                                 type="tel" 
                                 value={authInput}
                                 onChange={e => setAuthInput(e.target.value)}
-                                className="w-full pl-20 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50 text-slate-900 placeholder:text-slate-400 font-medium"
+                                className="w-full pl-20 pr-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 font-medium"
                                 placeholder="XX XXX XXXX"
                             />
                           </div>
@@ -465,7 +458,7 @@ const App: React.FC = () => {
                       <button 
                         type="button"
                         onClick={() => setAuthStep('method')}
-                        className="w-full py-2 text-sm text-slate-500 hover:text-slate-700"
+                        className="w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                       >
                          Back
                       </button>
@@ -475,11 +468,11 @@ const App: React.FC = () => {
               {authStep === 'phone-verify' && (
                   <form onSubmit={verifyOtp} className="space-y-4">
                       <div className="text-center mb-2">
-                          <p className="text-sm text-slate-600">Enter code sent to <span className="font-semibold text-slate-900">+233 {authInput}</span></p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">Enter code sent to <span className="font-semibold text-slate-900 dark:text-white">+233 {authInput}</span></p>
                       </div>
                       <div className="flex justify-center gap-2">
                           {[1,2,3,4].map(i => (
-                             <div key={i} className="w-12 h-12 border border-slate-300 rounded-lg bg-slate-50 flex items-center justify-center text-xl font-bold text-slate-800">
+                             <div key={i} className="w-12 h-12 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-xl font-bold text-slate-800 dark:text-white">
                                 {otp[i-1] || ''}
                              </div>
                           ))}
@@ -510,14 +503,14 @@ const App: React.FC = () => {
                       <button 
                         type="button"
                         onClick={() => setAuthStep('phone-input')}
-                        className="w-full py-2 text-sm text-slate-500 hover:text-slate-700"
+                        className="w-full py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                       >
                          Change Number
                       </button>
                   </form>
               )}
 
-              <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+              <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
                   <p className="text-xs text-slate-400">By continuing, you agree to TitiMe's Terms & Conditions.</p>
               </div>
            </div>
