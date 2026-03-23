@@ -1,73 +1,316 @@
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .LoginPage {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #053758;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
 }
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .LoginPageContainer {
-  background-color: #ffffff;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 300px;
+  background-color: rgba(255, 255, 255, 0.98);
+  padding: 3rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
+
 .WelcomeText {
   text-align: center;
-  margin-bottom: 20px;
 }
+
 .WelcomeText h1 {
-  margin: 0;
-  font-size: 32px;
-  color: #333333;
+  margin: 0 0 0.5rem 0;
+  font-size: 2.5rem;
+  color: #1a202c;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
+
 .WelcomeText p {
-  margin: 5px 0;
-  color: #383737;
+  margin: 0.25rem 0;
+  color: #4a5568;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
+
+.WelcomeText p:first-of-type {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #718096;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
 .LoginForm {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
+
 .LoginForm p {
-  margin-bottom: 10px;
-  color: #333333;
-  align-self: center;
+  margin: 0 0 0.5rem 0;
+  color: #2d3748;
+  font-weight: 600;
+  text-align: center;
 }
+
 .LoginForm input {
-  margin-bottom: 15px;
-  padding: 10px;
-  border: 1px solid #cccccc;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background-color: #f8fafc;
 }
+
 .LoginForm input:focus {
-  border-color: #053758;
+  border-color: #3182ce;
   outline: none;
-  background-color: #c3c4cf;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
 }
+
 .LoginForm button {
-  padding: 10px;
-  background-color: #053758;
+  padding: 12px;
+  background-color: #3182ce;
   color: #ffffff;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
 }
+
 .LoginForm button:hover {
-  background-color: #042a4e;
-  transform: scale(1.1);
+  background-color: #2b6cb0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
 }
+
+.Divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0.5rem 0;
+}
+
+.Divider::before,
+.Divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.Divider::before {
+  margin-right: 1em;
+}
+
+.Divider::after {
+  margin-left: 1em;
+}
+
+.LoginForm .GoogleLogin {
+  background-color: #fff;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  margin-top: 0;
+}
+
+.LoginForm .GoogleLogin:hover {
+  background-color: #f7fafc;
+  border-color: #cbd5e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.LoginForm .PhoneLogin {
+  background-color: #2d3748;
+  margin-top: 0;
+}
+
+.LoginForm .PhoneLogin:hover {
+  background-color: #1a202c;
+  box-shadow: 0 4px 12px rgba(45, 55, 72, 0.3);
+}
+
 .RegisterLink {
   text-align: center;
-  margin-top: 15px;
+  font-size: 0.9rem;
 }
+
 .RegisterLink p {
-  color: #333333;
+  color: #718096;
+  margin: 0;
 }
+
 .RegisterLink a {
-  color: #053758;
+  color: #3182ce;
   text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
 }
+
 .RegisterLink a:hover {
+  color: #2c5282;
   text-decoration: underline;
+}
+
+.HomePage {
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f7fafc;
+  position: relative;
+}
+
+.HomePage .Header {
+  text-align: center;
+  margin-top: 2rem;
+  margin-bottom: 4rem;
+}
+
+.HomePage .Header h1 {
+  font-size: 3rem;
+  color: #2d3748;
+  margin: 0;
+}
+
+.HomePage .Header p {
+  color: #718096;
+  margin: 0.5rem 0;
+}
+
+.SignoutButton {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+}
+
+.SignoutButton button {
+  padding: 10px 20px;
+  background-color: #e53e3e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.SignoutButton button:hover {
+  background-color: #c53030;
+}
+
+.ContentBox {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+}
+
+.SubscribedClubs,
+.AllClubs {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.SubscribedClubsHeader,
+.AllClubsHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.SubscribedClubs h1,
+.AllClubs h1 {
+  font-size: 2rem;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.SubscribedClubsList,
+.AllClubsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.ClubCard {
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  padding: 2rem;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+}
+
+.ClubCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e0;
+}
+
+.ClubCard h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: #2d3748;
+}
+
+.ClubCard p {
+  margin: 0 0 1.5rem 0;
+  color: #718096;
+  flex-grow: 1;
+  line-height: 1.5;
+}
+
+.ClubCard button {
+  width: 100%;
+  padding: 12px;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ClubCard button:hover {
+  background-color: #2b6cb0;
 }
