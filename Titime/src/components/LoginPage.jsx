@@ -1,4 +1,4 @@
-function LoginPage() {
+function LoginPage({ onLogin }) {
   return (
     <div className="LoginPage">
       <div className='LoginPageContainer'>
@@ -12,10 +12,10 @@ function LoginPage() {
             <p>Login to your account</p>
           <input type="text" placeholder='Username' />
           <input type="password" placeholder='Password' />
-          <button>Login</button>
-        </div>
-        <div className="RegisterLink">
-          <p>Don't have an account? <a href="#">Register here</a></p>
+          <button className="MainLoginButton" onClick={onLogin}>Login</button>
+          <div className="Divider">or</div>
+          <button className="GoogleLogin">Login with Google</button>
+          <button className="PhoneLogin">Login with Phone Number</button>
         </div>
       </div>
     </div>
