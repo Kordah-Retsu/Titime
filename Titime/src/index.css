@@ -193,10 +193,15 @@ body {
 .HomePage {
   min-height: 100vh;
   padding: 2rem;
+<<<<<<< HEAD
   position: relative;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   background-size: 400% 400%;
   animation: gradientBG 15s ease infinite;
+=======
+  background-color: #f7fafc;
+  position: relative;
+>>>>>>> 724dee52aabb25d5eec34253ad14c337e23a144b
 }
 
 .HomePage .Header {
@@ -207,12 +212,20 @@ body {
 
 .HomePage .Header h1 {
   font-size: 3rem;
+<<<<<<< HEAD
   color: #ffffff;
+=======
+  color: #2d3748;
+>>>>>>> 724dee52aabb25d5eec34253ad14c337e23a144b
   margin: 0;
 }
 
 .HomePage .Header p {
+<<<<<<< HEAD
   color: #e2e8f0;
+=======
+  color: #718096;
+>>>>>>> 724dee52aabb25d5eec34253ad14c337e23a144b
   margin: 0.5rem 0;
 }
 
@@ -257,6 +270,7 @@ body {
   margin-bottom: 2rem;
 }
 
+<<<<<<< HEAD
 .SubscribedClubsHeader p,
 .AllClubsHeader p {
   color: #e2e8f0;
@@ -266,6 +280,12 @@ body {
 .AllClubs h1 {
   font-size: 2rem;
   color: #ffffff;
+=======
+.SubscribedClubs h1,
+.AllClubs h1 {
+  font-size: 2rem;
+  color: #2d3748;
+>>>>>>> 724dee52aabb25d5eec34253ad14c337e23a144b
   margin-bottom: 0.5rem;
 }
 
@@ -277,7 +297,11 @@ body {
 }
 
 .ClubCard {
+<<<<<<< HEAD
   background-color: rgba(255, 255, 255, 0.95);
+=======
+  background-color: #fff;
+>>>>>>> 724dee52aabb25d5eec34253ad14c337e23a144b
   border: 1px solid #e2e8f0;
   padding: 2rem;
   border-radius: 16px;

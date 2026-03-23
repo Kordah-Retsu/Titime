@@ -5,10 +5,16 @@ function HomePage({ onSignOut }) {
             <button onClick={onSignOut}>Sign Out</button>
         </div>
         <div className="Header">
+<<<<<<< HEAD
             <h1>Titime</h1>
             <p>By Retsu</p>
             <p>Welcome to Titime!</p>
             <p>Automated club-fees payment system</p>
+=======
+            <h1>Home Page</h1>
+            <p>By Retsu</p>
+            <p>Welcome to Titime!</p>
+>>>>>>> 724dee52aabb25d5eec34253ad14c337e23a144b
         </div>
         <div className="ContentBox">
             <div className="SubscribedClubs">
